@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Veille Automatisée ONF Corse - Démonstration Intégrée</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #268373 0%, #1a5449 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .dashboard-layout {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .left-panel {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .right-panel {
+            width: 40%;
+            min-width: 500px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeIn 0.5s;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .logo-onf {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #268373;
+            font-size: 20px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        /* Panneau Carte */
+        .map-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            animation: slideUp 0.6s;
+            height: calc(100vh - 180px);
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #268373;
+        }
+        
+        .map-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .map-container {
+            flex: 1;
+            min-height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 15px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 0.85em;
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 0.9em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .legend-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .legend-marker.feu {
+            background: #f44336;
+        }
+        
+        .legend-marker.bivouac {
+            background: #ff9800;
+        }
+        
+        .legend-marker.vehicule {
+            background: #2196F3;
+        }
+        
+        .map-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .map-stat {
+            flex: 1;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .map-stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #268373;
+        }
+        
+        .map-stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Panneau Inoreader */
+        .inoreader-panel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .inoreader-panel.active {
+            display: block;
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        .inoreader-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2eb85c;
+        }
+        
+        .inoreader-logo {
+            width: 30px;
+            height: 30px;
+            background: #2eb85c;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .inoreader-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .feed-items {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .feed-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid transparent;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateX(-50px);
+            animation: feedSlideIn 0.5s forwards;
+            transition: all 0.3s;
+        }
+        
+        .feed-item:hover {
+            background: #e8f5e9;
+            transform: translateX(5px);
+        }
+        
+        .feed-item.alert-feu {
+            border-left-color: #f44336;
+        }
+        
+        .feed-item.alert-bivouac {
+            border-left-color: #ff9800;
+        }
+        
+        .feed-item.alert-vehicule {
+            border-left-color: #2196F3;
+        }
+        
+        .feed-item-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .feed-item-source {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .feed-item-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .feed-tag {
+            background: #e0e0e0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            color: #555;
+        }
+        
+        .feed-tag.priority {
+            background: #f44336;
+            color: white;
+        }
+        
+        @keyframes feedSlideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Panneau Make */
+        .make-panel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: none;
+        }
+        
+        .make-panel.active {
+            display: block;
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        .make-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #8b5cf6;
+        }
+        
+        .make-logo {
+            width: 30px;
+            height: 30px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .make-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .make-workflow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .make-module {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s;
+        }
+        
+        .make-module.active {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+        
+        .make-module.webhooks {
+            background: linear-gradient(135deg, #e91e63, #c2185b);
+            color: white;
+        }
+        
+        .make-module.classification {
+            background: linear-gradient(135deg, #8bc34a, #689f38);
+            color: white;
+        }
+        
+        .make-module.sheets {
+            background: linear-gradient(135deg, #0f9d58, #0b7e46);
+            color: white;
+        }
+        
+        .make-module.email {
+            background: linear-gradient(135deg, #ea4335, #c5221f);
+            color: white;
+        }
+        
+        .module-icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .module-label {
+            font-size: 0.75em;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .flow-connection {
+            position: absolute;
+            height: 2px;
+            background: #ddd;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        
+        .flow-connection.active {
+            background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+            animation: flowPulse 1s infinite;
+        }
+        
+        .data-flow {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 3;
+            display: none;
+        }
+        
+        .data-flow.active {
+            display: block;
+            animation: dataMove 2s ease-in-out forwards;
+        }
+        
+        @keyframes dataMove {
+            0% {
+                left: 50px;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                left: calc(100% - 70px);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes flowPulse {
+            0%, 100% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+        
+        .main-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            animation: slideUp 0.6s;
+        }
+        
+        .process-flow {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .process-step {
+            flex: 1;
+            min-width: 180px;
+            text-align: center;
+            padding: 20px;
+            margin: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .process-step.active {
+            background: #e8f5e9;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(38,131,115,0.3);
+        }
+        
+        .process-step.completed {
+            background: #c8e6c9;
+        }
+        
+        .process-step::after {
+            content: '→';
+            position: absolute;
+            right: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #999;
+        }
+        
+        .process-step:last-child::after {
+            display: none;
+        }
+        
+        .step-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .step-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .step-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .control-panel {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .control-section {
+            flex: 1;
+            min-width: 300px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .control-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #268373;
+            padding-bottom: 10px;
+        }
+        
+        .scenario-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .scenario-btn {
+            padding: 10px 20px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .scenario-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .scenario-btn.bivouac {
+            border-color: #ff9800;
+        }
+        
+        .scenario-btn.vehicule {
+            border-color: #2196F3;
+        }
+        
+        .scenario-btn.feu {
+            border-color: #f44336;
+        }
+        
+        .scenario-btn.selected {
+            color: white;
+            font-weight: bold;
+        }
+        
+        .scenario-btn.bivouac.selected {
+            background: #ff9800;
+        }
+        
+        .scenario-btn.vehicule.selected {
+            background: #2196F3;
+        }
+        
+        .scenario-btn.feu.selected {
+            background: #f44336;
+        }
+        
+        .start-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #268373 0%, #1a5449 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .start-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .output-panel {
+            margin-top: 30px;
+        }
+        
+        .output-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        .output-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-badge {
+            background: #ff5252;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .data-table th {
+            background: #268373;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .data-table tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+        
+        .email-preview {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .email-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .email-field {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        
+        .email-field label {
+            font-weight: bold;
+            width: 80px;
+            color: #666;
+        }
+        
+        .priority-high {
+            color: #ff5252;
+            font-weight: bold;
+        }
+        
+        .sheets-preview {
+            background: white;
+            border: 2px solid #0f9d58;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .sheets-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: #0f9d58;
+        }
+        
+        .console {
+            background: #1e1e1e;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .console-line {
+            margin-bottom: 5px;
+            opacity: 0;
+            animation: typeIn 0.5s forwards;
+        }
+        
+        @keyframes typeIn {
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: linear-gradient(135deg, #268373 0%, #1a5449 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .process-step::after {
+                display: none;
+            }
+            
+            .process-flow {
+                flex-direction: column;
+            }
+            
+            .map-container {
+                height: 350px;
+            }
+        }
+        
+        /* Popup personnalisé pour les marqueurs */
+        .custom-popup {
+            max-width: 280px;
+        }
+        
+        .popup-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .popup-content {
+            font-size: 0.9em;
+        }
+        
+        .popup-content p {
+            margin: 5px 0;
+        }
+        
+        .popup-priority {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .popup-priority.high {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .popup-priority.medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .popup-priority.low {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="logo-onf">ONF</span>
+                Système de Veille Automatisée ONF Corse
+            </h1>
+            <p>Démonstration du processus intégré Inoreader → Make → Google Sheets → Email</p>
+        </div>
+
+        <div class="dashboard-layout">
+            <!-- Panneau de gauche -->
+            <div class="left-panel">
+                <!-- Panneau Inoreader -->
+                <div class="inoreader-panel" id="inoreaderPanel">
+                    <div class="inoreader-header">
+                        <div class="inoreader-logo">In</div>
+                        <div class="inoreader-title">Inoreader - Fil d'actualité</div>
+                    </div>
+                    <div class="feed-items" id="feedItems"></div>
+                </div>
+
+                <!-- Panneau Make -->
+                <div class="make-panel" id="makePanel">
+                    <div class="make-header">
+                        <div class="make-logo">M</div>
+                        <div class="make-title">Make - Workflow d'automatisation</div>
+                    </div>
+                    <div class="make-workflow">
+                        <div class="make-module webhooks" id="makeWebhooks">
+                            <div class="module-icon">🔗</div>
+                            <div class="module-label">Webhooks</div>
+                        </div>
+                        
+                        <div class="flow-connection" id="flow1" style="left: 100px; width: calc(33.33% - 100px);"></div>
+                        <div class="data-flow" id="dataFlow1"></div>
+                        
+                        <div class="make-module classification" id="makeClassification">
+                            <div class="module-icon">🏷️</div>
+                            <div class="module-label">Classification</div>
+                        </div>
+                        
+                        <div class="flow-connection" id="flow2" style="left: 33.33%; width: calc(33.33%);"></div>
+                        <div class="data-flow" id="dataFlow2"></div>
+                        
+                        <div class="make-module sheets" id="makeSheets">
+                            <div class="module-icon">📊</div>
+                            <div class="module-label">Sheets</div>
+                        </div>
+                        
+                        <div class="flow-connection" id="flow3" style="left: 66.66%; width: calc(33.33% - 100px);"></div>
+                        <div class="data-flow" id="dataFlow3"></div>
+                        
+                        <div class="make-module email" id="makeEmail">
+                            <div class="module-icon">📧</div>
+                            <div class="module-label">Email</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="main-panel">
+                    <div class="process-flow">
+                        <div class="process-step" id="step1">
+                            <div class="step-icon">📡</div>
+                            <div class="step-title">Détection</div>
+                            <div class="step-status">Webhook Inoreader</div>
+                        </div>
+                        <div class="process-step" id="step2">
+                            <div class="step-icon">🔍</div>
+                            <div class="step-title">Classification</div>
+                            <div class="step-status">Analyse mots-clés</div>
+                        </div>
+                        <div class="process-step" id="step3">
+                            <div class="step-icon">📊</div>
+                            <div class="step-title">Enrichissement</div>
+                            <div class="step-status">Données contextuelles</div>
+                        </div>
+                        <div class="process-step" id="step4">
+                            <div class="step-icon">💾</div>
+                            <div class="step-title">Archivage</div>
+                            <div class="step-status">Google Sheets</div>
+                        </div>
+                        <div class="process-step" id="step5">
+                            <div class="step-icon">📧</div>
+                            <div class="step-title">Alerte</div>
+                            <div class="step-status">Email SMTP</div>
+                        </div>
+                    </div>
+
+                    <div class="control-panel">
+                        <div class="control-section">
+                            <h3>🔍 Sélection du scénario - Cas réels</h3>
+                            <div class="scenario-selector">
+                                <button class="scenario-btn bivouac" onclick="selectScenario('bivouac')">
+                                    🏕️ Bivouac illégal
+                                </button>
+                                <button class="scenario-btn vehicule" onclick="selectScenario('vehicule')">
+                                    🚗 Véhicule motorisé
+                                </button>
+                                <button class="scenario-btn feu" onclick="selectScenario('feu')">
+                                    🔥 Feu interdit
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-section">
+                            <h3>⚙️ Contrôle de simulation</h3>
+                            <button class="start-btn" onclick="startSimulation()" id="startBtn">
+                                ▶️ Démarrer la simulation
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stats-panel">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalAlerts">0</div>
+                            <div class="stat-label">Alertes aujourd'hui</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgScore">0</div>
+                            <div class="stat-label">Score moyen</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="processTime">0s</div>
+                            <div class="stat-label">Temps de traitement</div>
+                        </div>
+                    </div>
+
+                    <div class="output-panel" id="outputPanel" style="display: none;">
+                        
+                        <div class="output-section" id="detectionOutput">
+                            <h3>📡 Données reçues via Webhook <span class="alert-badge">NOUVEAU</span></h3>
+                            <table class="data-table">
+                                <tr>
+                                    <th>Champ</th>
+                                    <th>Valeur</th>
+                                </tr>
+                                <tbody id="webhookData"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="output-section" id="classificationOutput">
+                            <h3>🔍 Classification automatique</h3>
+                            <table class="data-table">
+                                <tr>
+                                    <th>Critère</th>
+                                    <th>Résultat</th>
+                                </tr>
+                                <tbody id="classificationData"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="output-section" id="enrichmentOutput">
+                            <h3>📊 Enrichissement des données</h3>
+                            <table class="data-table">
+                                <tr>
+                                    <th>Donnée</th>
+                                    <th>Valeur enrichie</th>
+                                </tr>
+                                <tbody id="enrichmentData"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="output-section" id="sheetsOutput">
+                            <h3>💾 Enregistrement Google Sheets</h3>
+                            <div class="sheets-preview">
+                                <div class="sheets-header">
+                                    <span style="font-size: 24px;">📊</span>
+                                    <strong>Signaux_bruts_ONF_Corse</strong>
+                                </div>
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID_Alerte</th>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Lieu</th>
+                                            <th>Score</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sheetsData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="output-section" id="emailOutput">
+                            <h3>📧 Alerte email envoyée</h3>
+                            <div class="email-preview">
+                                <div class="email-header">
+                                    <div class="email-field">
+                                        <label>À :</label>
+                                        <span>veille_onf@proton.me</span>
+                                    </div>
+                                    <div class="email-field">
+                                        <label>De :</label>
+                                        <span>horizon.connect25@gmail.com</span>
+                                    </div>
+                                    <div class="email-field">
+                                        <label>Objet :</label>
+                                        <span id="emailSubject"></span>
+                                    </div>
+                                    <div class="email-field">
+                                        <label>Priorité :</label>
+                                        <span id="emailPriority"></span>
+                                    </div>
+                                </div>
+                                <div id="emailContent"></div>
+                            </div>
+                        </div>
+
+                        <div class="console">
+                            <div id="consoleOutput"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau de droite - Carte Interactive -->
+            <div class="right-panel">
+                <div class="map-panel">
+                    <div class="map-header">
+                        <div class="map-title">
+                            <span>🗺️</span>
+                            <span>Cartographie des Infractions</span>
+                        </div>
+                        <div class="map-legend">
+                            <div class="legend-title">Type d'infraction</div>
+                            <div class="legend-item">
+                                <div class="legend-marker feu">🔥</div>
+                                <span>Feu interdit</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-marker bivouac">🏕️</div>
+                                <span>Bivouac illégal</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-marker vehicule">🚗</div>
+                                <span>Véhicule motorisé</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="map-container" id="mapContainer"></div>
+                    <div class="map-stats">
+                        <div class="map-stat">
+                            <div class="map-stat-value" id="mapTotalAlerts">12</div>
+                            <div class="map-stat-label">Alertes cette semaine</div>
+                        </div>
+                        <div class="map-stat">
+                            <div class="map-stat-value" id="mapHighPriority">3</div>
+                            <div class="map-stat-label">Priorité critique</div>
+                        </div>
+                        <div class="map-stat">
+                            <div class="map-stat-value" id="mapZonesAffected">5</div>
+                            <div class="map-stat-label">Zones affectées</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        let selectedScenario = null;
+        let simulationRunning = false;
+        let totalAlertsCount = 0;
+        let scores = [];
+        let map = null;
+        let markers = [];
+        let newMarker = null;
+
+        // Données des flux Inoreader simulés
+        const inoreaderFeeds = {
+            feu: [
+                {
+                    title: "🔥 ALERTE - Feu détecté près de Piana",
+                    source: "YouTube • @corsicatravel",
+                    tags: ["PRIORITÉ_MAXIMALE", "feux_A", "bivouac"],
+                    priority: true,
+                    type: "alert-feu"
+                },
+                {
+                    title: "Camping sauvage avec feu de camp en Corse",
+                    source: "TikTok • @vanlife_adventures",
+                    tags: ["feu", "camping", "interdit"],
+                    priority: true,
+                    type: "alert-feu"
+                },
+                {
+                    title: "Barbecue en forêt - Secteur Bonifacio",
+                    source: "Instagram • @summer_corsica",
+                    tags: ["barbecue", "forêt", "danger"],
+                    priority: false,
+                    type: "alert-feu"
+                }
+            ],
+            bivouac: [
+                {
+                    title: "Van Life sur la baie de Rondinara",
+                    source: "TikTok • @reyema_life",
+                    tags: ["bivouac", "vanlife", "plage"],
+                    priority: false,
+                    type: "alert-bivouac"
+                },
+                {
+                    title: "Camping illégal détecté - Réserve naturelle",
+                    source: "Facebook • Signalement",
+                    tags: ["camping", "réserve", "illégal"],
+                    priority: true,
+                    type: "alert-bivouac"
+                }
+            ],
+            vehicule: [
+                {
+                    title: "4x4 sur piste forestière interdite",
+                    source: "Facebook • @4x4_corsica",
+                    tags: ["4x4", "piste", "interdit"],
+                    priority: false,
+                    type: "alert-vehicule"
+                },
+                {
+                    title: "Randonnée motorisée en zone protégée",
+                    source: "Instagram • @offroad_corse",
+                    tags: ["véhicule", "zone_protégée"],
+                    priority: true,
+                    type: "alert-vehicule"
+                }
+            ]
+        };
+
+        // Scénarios avec vos données réelles
+        const scenarios = {
+            bivouac: {
+                title: "Bivouac et feu illégal détecté sur la baie de Rondinara",
+                content: "Un couple a campé sur la baie de Rondinara. Publication montrant un van aménagé avec installation de bivouac sur une plage protégée.",
+                url: "https://www.tiktok.com/@reyema_life/video/7536609359497841942",
+                source: "TikTok",
+                keywords: ["bivouac", "vanlife", "4x4", "roadtrip", "corse", "camping", "plage"],
+                location: "Baie de Rondinara",
+                coordinates: [41.5319, 9.2639],
+                department: "2A",
+                score: 85,
+                priority: "ÉLEVÉ",
+                color: "#ff9800"
+            },
+            vehicule: {
+                title: "Randonnée en 4x4 sur piste forestière interdite",
+                content: "Plusieurs véhicules 4x4 ont été repérés circulant sur la piste forestière entre la Bocca di Piazza Moninca et le Foce d'Ortu.",
+                url: "https://www.facebook.com/reel/1028224692245603",
+                source: "Facebook",
+                keywords: ["4x4", "piste", "véhicule", "tout-terrain", "corse", "montagne"],
+                location: "Piste entre Bocca di Piazza Moninca et Foce d'Ortu",
+                coordinates: [42.3333, 9.1667],
+                department: "2B",
+                score: 70,
+                priority: "MODÉRÉ",
+                color: "#2196F3"
+            },
+            feu: {
+                title: "Bivouac et feu détectés près de Piana",
+                content: "Un feu a été allumé illégalement à proximité de Piana. Les contrevenants ont installé un campement avec feu de camp en zone forestière.",
+                url: "https://www.youtube.com/watch?v=36QnpMiqmUs",
+                source: "YouTube",
+                keywords: ["feu", "corsica", "camping", "roadtrip", "bivouac", "forêt"],
+                location: "Secteur de Piana",
+                coordinates: [42.2417, 8.6369],
+                department: "2A",
+                score: 90,
+                priority: "CRITIQUE",
+                color: "#f44336"
+            }
+        };
+
+        // Données historiques pour la carte
+        const historicalAlerts = [
+            { type: 'feu', location: 'Porto-Vecchio', coordinates: [41.5912, 9.2784], priority: 'high', date: '2025-09-25' },
+            { type: 'bivouac', location: 'Calvi', coordinates: [42.5681, 8.7576], priority: 'medium', date: '2025-09-24' },
+            { type: 'vehicule', location: 'Corte', coordinates: [42.3054, 9.1508], priority: 'low', date: '2025-09-24' },
+            { type: 'feu', location: 'Aïtone Forest', coordinates: [42.2667, 8.9167], priority: 'high', date: '2025-09-23' },
+            { type: 'bivouac', location: 'Cap Corse', coordinates: [42.9667, 9.3500], priority: 'medium', date: '2025-09-23' },
+            { type: 'vehicule', location: 'Bavella', coordinates: [41.7833, 9.2167], priority: 'medium', date: '2025-09-22' },
+            { type: 'feu', location: 'Ajaccio - Forêt', coordinates: [41.9439, 8.7825], priority: 'critical', date: '2025-09-22' },
+            { type: 'bivouac', location: 'Desert des Agriates', coordinates: [42.6833, 9.2000], priority: 'low', date: '2025-09-21' },
+            { type: 'vehicule', location: 'Col de Verde', coordinates: [42.1000, 9.1667], priority: 'medium', date: '2025-09-21' }
+        ];
+
+        function initializeMap() {
+            // Initialiser la carte centrée sur la Corse
+            map = L.map('mapContainer').setView([42.0396, 9.0129], 8);
+            
+            // Ajouter le fond de carte
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+            
+            // Ajouter les marqueurs historiques
+            historicalAlerts.forEach(alert => {
+                addMapMarker(alert);
+            });
+        }
+
+        function addMapMarker(alert, isNew = false) {
+            const icon = getMarkerIcon(alert.type);
+            const markerOptions = isNew ? {
+                opacity: 0,
+                icon: icon
+            } : {
+                icon: icon
+            };
+            
+            const marker = L.marker(alert.coordinates, markerOptions).addTo(map);
+            
+            // Créer le contenu du popup
+            const popupContent = `
+                <div class="custom-popup">
+                    <div class="popup-header">
+                        ${getAlertIcon(alert.type)} ${getAlertTypeName(alert.type)}
+                    </div>
+                    <div class="popup-content">
+                        <p><strong>Lieu:</strong> ${alert.location}</p>
+                        <p><strong>Date:</strong> ${alert.date || new Date().toLocaleDateString('fr-FR')}</p>
+                        ${alert.source ? `<p><strong>Source:</strong> ${alert.source}</p>` : ''}
+                        <div class="popup-priority ${getPriorityClass(alert.priority)}">
+                            Priorité: ${getPriorityLabel(alert.priority)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            
+            if (isNew) {
+                // Animation pour le nouveau marqueur
+                setTimeout(() => {
+                    marker.setOpacity(1);
+                    marker.openPopup();
+                    
+                    // Faire clignoter le marqueur
+                    let blinkCount = 0;
+                    const blinkInterval = setInterval(() => {
+                        marker.setOpacity(blinkCount % 2 === 0 ? 0.3 : 1);
+                        blinkCount++;
+                        if (blinkCount >= 6) {
+                            clearInterval(blinkInterval);
+                            marker.setOpacity(1);
+                        }
+                    }, 300);
+                }, 100);
+                
+                newMarker = marker;
+            }
+            
+            markers.push(marker);
+            return marker;
+        }
+
+        function getMarkerIcon(type) {
+            const colors = {
+                feu: '#f44336',
+                bivouac: '#ff9800',
+                vehicule: '#2196F3'
+            };
+            
+            const icons = {
+                feu: '🔥',
+                bivouac: '🏕️',
+                vehicule: '🚗'
+            };
+            
+            return L.divIcon({
+                html: `<div style="background: ${colors[type]}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; box-shadow: 0 3px 8px rgba(0,0,0,0.3);">${icons[type]}</div>`,
+                iconSize: [30, 30],
+                className: 'custom-marker'
+            });
+        }
+
+        function getAlertIcon(type) {
+            const icons = {
+                feu: '🔥',
+                bivouac: '🏕️',
+                vehicule: '🚗'
+            };
+            return icons[type] || '⚠️';
+        }
+
+        function getAlertTypeName(type) {
+            const names = {
+                feu: 'Feu interdit',
+                bivouac: 'Bivouac illégal',
+                vehicule: 'Véhicule motorisé'
+            };
+            return names[type] || 'Infraction';
+        }
+
+        function getPriorityClass(priority) {
+            const priorityMap = {
+                'CRITIQUE': 'high',
+                'critical': 'high',
+                'high': 'high',
+                'ÉLEVÉ': 'medium',
+                'medium': 'medium',
+                'MODÉRÉ': 'low',
+                'low': 'low'
+            };
+            return priorityMap[priority] || 'low';
+        }
+
+        function getPriorityLabel(priority) {
+            const labels = {
+                'CRITIQUE': 'Critique',
+                'critical': 'Critique',
+                'high': 'Élevée',
+                'ÉLEVÉ': 'Élevée',
+                'medium': 'Moyenne',
+                'MODÉRÉ': 'Modérée',
+                'low': 'Faible'
+            };
+            return labels[priority] || priority;
+        }
+
+        function selectScenario(type) {
+            selectedScenario = type;
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`.scenario-btn.${type}`).classList.add('selected');
+        }
+
+        function addConsoleLog(message) {
+            const console = document.getElementById('consoleOutput');
+            const line = document.createElement('div');
+            line.className = 'console-line';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function showInoreaderFeed() {
+            const panel = document.getElementById('inoreaderPanel');
+            const feedItems = document.getElementById('feedItems');
+            panel.classList.add('active');
+            feedItems.innerHTML = '';
+            
+            const feeds = inoreaderFeeds[selectedScenario] || [];
+            feeds.forEach((feed, index) => {
+                setTimeout(() => {
+                    const item = document.createElement('div');
+                    item.className = `feed-item ${feed.type}`;
+                    item.style.animationDelay = `${index * 0.2}s`;
+                    item.innerHTML = `
+                        <div class="feed-item-title">${feed.title}</div>
+                        <div class="feed-item-source">${feed.source}</div>
+                        <div class="feed-item-tags">
+                            ${feed.tags.map(tag => 
+                                `<span class="feed-tag ${feed.priority && tag.includes('PRIORITÉ') ? 'priority' : ''}">${tag}</span>`
+                            ).join('')}
+                        </div>
+                    `;
+                    feedItems.appendChild(item);
+                }, index * 300);
+            });
+        }
+
+        function animateMakeWorkflow() {
+            const panel = document.getElementById('makePanel');
+            panel.classList.add('active');
+            
+            // Animation séquentielle des modules
+            setTimeout(() => {
+                document.getElementById('makeWebhooks').classList.add('active');
+                document.getElementById('flow1').classList.add('active');
+                document.getElementById('dataFlow1').classList.add('active');
+            }, 500);
+            
+            setTimeout(() => {
+                document.getElementById('makeWebhooks').classList.remove('active');
+                document.getElementById('makeClassification').classList.add('active');
+                document.getElementById('flow2').classList.add('active');
+                document.getElementById('dataFlow2').classList.add('active');
+            }, 1500);
+            
+            setTimeout(() => {
+                document.getElementById('makeClassification').classList.remove('active');
+                document.getElementById('makeSheets').classList.add('active');
+                document.getElementById('flow3').classList.add('active');
+                document.getElementById('dataFlow3').classList.add('active');
+            }, 2500);
+            
+            setTimeout(() => {
+                document.getElementById('makeSheets').classList.remove('active');
+                document.getElementById('makeEmail').classList.add('active');
+            }, 3500);
+            
+            // Reset des animations
+            setTimeout(() => {
+                document.querySelectorAll('.make-module').forEach(m => m.classList.remove('active'));
+                document.querySelectorAll('.flow-connection').forEach(f => f.classList.remove('active'));
+                document.querySelectorAll('.data-flow').forEach(d => d.classList.remove('active'));
+            }, 4500);
+        }
+
+        async function startSimulation() {
+            if (!selectedScenario) {
+                alert('Veuillez sélectionner un scénario');
+                return;
+            }
+
+            if (simulationRunning) return;
+            simulationRunning = true;
+            
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ Simulation en cours...';
+            
+            const startTime = Date.now();
+            
+            // Reset
+            document.querySelectorAll('.process-step').forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            
+            // Retirer le marqueur précédent si existant
+            if (newMarker) {
+                map.removeLayer(newMarker);
+                newMarker = null;
+            }
+            
+            document.getElementById('outputPanel').style.display = 'block';
+            document.getElementById('consoleOutput').innerHTML = '';
+            
+            const scenario = scenarios[selectedScenario];
+            
+            // Afficher Inoreader Feed
+            addConsoleLog('📰 Chargement du flux Inoreader...');
+            showInoreaderFeed();
+            await sleep(1500);
+            
+            // Afficher Make Workflow
+            addConsoleLog('⚙️ Activation du workflow Make...');
+            animateMakeWorkflow();
+            await sleep(1000);
+            
+            // Ajouter le nouveau marqueur sur la carte
+            addConsoleLog('🗺️ Localisation de l\'incident sur la carte...');
+            const newAlert = {
+                type: selectedScenario,
+                location: scenario.location,
+                coordinates: scenario.coordinates,
+                priority: scenario.priority,
+                source: scenario.source,
+                date: new Date().toLocaleDateString('fr-FR')
+            };
+            addMapMarker(newAlert, true);
+            
+            // Centrer la carte sur le nouveau marqueur
+            map.panTo(scenario.coordinates);
+            
+            // Étape 1: Détection
+            await simulateStep(1, async () => {
+                addConsoleLog('🔄 Webhook déclenché par Inoreader...');
+                await sleep(500);
+                addConsoleLog(`✅ Nouveau contenu détecté sur ${scenario.source}`);
+                
+                const webhookData = document.getElementById('webhookData');
+                webhookData.innerHTML = `
+                    <tr><td>Source</td><td>${scenario.source}</td></tr>
+                    <tr><td>Titre</td><td>${scenario.title}</td></tr>
+                    <tr><td>URL</td><td><a href="${scenario.url}" target="_blank">${scenario.url}</a></td></tr>
+                    <tr><td>Contenu</td><td>${scenario.content.substring(0, 150)}...</td></tr>
+                `;
+                showSection('detectionOutput');
+            });
+            
+            // Étape 2: Classification
+            await simulateStep(2, async () => {
+                addConsoleLog('🔍 Analyse des mots-clés en cours...');
+                await sleep(800);
+                addConsoleLog(`✅ Type d'infraction identifié: ${selectedScenario.toUpperCase()}`);
+                
+                const classificationData = document.getElementById('classificationData');
+                classificationData.innerHTML = `
+                    <tr><td>Type détecté</td><td><strong>${selectedScenario.toUpperCase()}</strong></td></tr>
+                    <tr><td>Mots-clés trouvés</td><td>${scenario.keywords.join(', ')}</td></tr>
+                    <tr><td>Correspondances</td><td>${scenario.keywords.length} mots-clés</td></tr>
+                    <tr><td>Confiance</td><td>${scenario.score}%</td></tr>
+                `;
+                showSection('classificationOutput');
+            });
+            
+            // Étape 3: Enrichissement
+            await simulateStep(3, async () => {
+                addConsoleLog('📊 Enrichissement des données...');
+                await sleep(600);
+                addConsoleLog('✅ Données contextuelles ajoutées');
+                
+                const enrichmentData = document.getElementById('enrichmentData');
+                const alertId = `${new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14)}_${Math.random().toString(36).substring(7)}`;
+                enrichmentData.innerHTML = `
+                    <tr><td>ID Unique</td><td>${alertId}</td></tr>
+                    <tr><td>Lieu présumé</td><td>${scenario.location}</td></tr>
+                    <tr><td>Coordonnées GPS</td><td>${scenario.coordinates[0].toFixed(4)}, ${scenario.coordinates[1].toFixed(4)}</td></tr>
+                    <tr><td>Département</td><td>${scenario.department}</td></tr>
+                    <tr><td>Score pertinence</td><td>${scenario.score}/100</td></tr>
+                    <tr><td>Niveau priorité</td><td><span style="color: ${scenario.color}">${scenario.priority}</span></td></tr>
+                `;
+                showSection('enrichmentOutput');
+            });
+            
+            // Étape 4: Archivage
+            await simulateStep(4, async () => {
+                addConsoleLog('💾 Connexion à Google Sheets...');
+                await sleep(700);
+                addConsoleLog('✅ Données enregistrées dans Signaux_bruts_ONF_Corse');
+                
+                const sheetsData = document.getElementById('sheetsData');
+                const now = new Date();
+                sheetsData.innerHTML = `
+                    <tr>
+                        <td>${now.getTime()}_${Math.random().toString(36).substring(7)}</td>
+                        <td>${now.toLocaleDateString('fr-FR')}</td>
+                        <td>${selectedScenario.toUpperCase()}</td>
+                        <td>${scenario.location}</td>
+                        <td>${scenario.score}</td>
+                        <td style="color: green">NOUVEAU</td>
+                    </tr>
+                `;
+                showSection('sheetsOutput');
+                
+                // Mise à jour des statistiques
+                totalAlertsCount++;
+                scores.push(scenario.score);
+                updateStats();
+            });
+            
+            // Étape 5: Alerte
+            await simulateStep(5, async () => {
+                addConsoleLog('📧 Préparation de l\'alerte email...');
+                await sleep(500);
+                addConsoleLog('✅ Email envoyé via SMTP Brevo');
+                
+                const emailSubject = document.getElementById('emailSubject');
+                const emailPriority = document.getElementById('emailPriority');
+                const emailContent = document.getElementById('emailContent');
+                
+                let icon = selectedScenario === 'bivouac' ? '🏕️' : selectedScenario === 'vehicule' ? '🚗' : '🔥';
+                emailSubject.textContent = `${icon} ALERTE - ${selectedScenario.toUpperCase()} détecté - Score ${scenario.score}/100`;
+                emailPriority.innerHTML = `<span class="priority-${scenario.priority === 'CRITIQUE' ? 'high' : 'medium'}">${scenario.priority}</span>`;
+                
+                emailContent.innerHTML = `
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="color: ${scenario.color}">Infraction détectée</h4>
+                        <p><strong>Type:</strong> ${selectedScenario.toUpperCase()}</p>
+                        <p><strong>Lieu:</strong> ${scenario.location}</p>
+                        <p><strong>Coordonnées:</strong> ${scenario.coordinates[0].toFixed(4)}, ${scenario.coordinates[1].toFixed(4)}</p>
+                        <p><strong>Description:</strong> ${scenario.content}</p>
+                        <p><strong>Actions requises:</strong></p>
+                        <ul>
+                            <li>Vérifier la localisation exacte</li>
+                            <li>Contacter les autorités locales si nécessaire</li>
+                            <li>Documenter l'incident dans le registre</li>
+                        </ul>
+                        <p><a href="https://docs.google.com/spreadsheets/d/11t9h6qOA4W_KXkInyeoZzDyWD53eBU_o0hC8zCw0Vqw/" target="_blank" style="color: ${scenario.color}">
+                            📊 Accéder au tableau de suivi
+                        </a></p>
+                    </div>
+                `;
+                showSection('emailOutput');
+            });
+            
+            const endTime = Date.now();
+            const processTime = ((endTime - startTime) / 1000).toFixed(1);
+            document.getElementById('processTime').textContent = `${processTime}s`;
+            
+            addConsoleLog('✨ Processus terminé avec succès!');
+            addConsoleLog(`⏱️ Temps total: ${processTime} secondes`);
+            
+            startBtn.disabled = false;
+            startBtn.textContent = '▶️ Relancer la simulation';
+            simulationRunning = false;
+        }
+
+        async function simulateStep(stepNumber, action) {
+            const step = document.getElementById(`step${stepNumber}`);
+            step.classList.add('active');
+            await action();
+            await sleep(500);
+            step.classList.remove('active');
+            step.classList.add('completed');
+        }
+
+        function showSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.style.opacity = '0';
+            section.style.display = 'block';
+            setTimeout(() => {
+                section.style.opacity = '1';
+            }, 100);
+        }
+
+        function updateStats() {
+            document.getElementById('totalAlerts').textContent = totalAlertsCount;
+            if (scores.length > 0) {
+                const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+                document.getElementById('avgScore').textContent = avgScore;
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Initialisation au chargement
+        window.onload = () => {
+            selectScenario('feu');
+            initializeMap();
+        };
+    </script>
+</body>
+</html>
